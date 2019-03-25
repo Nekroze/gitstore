@@ -1,0 +1,50 @@
+#!/bin/sh
+set -eu
+
+REPOROOT="$PWD"
+while [ "$REPOROOT" != '/' ]; do
+    [ -d "$REPOROOT/.git" ] && break
+    REPOROOT=$(dirname "$REPOROOT")
+done
+[ "$REPOROOT" != '/' ] || exit 1
+
+write_thing() {
+    name=$1
+    shift
+    value="$*"
+
+    hashed_value=$(echo "$value" | git hash-object -w --stdin)
+    hashed_stage=$(git update-index --add --cacheinfo "100644,$hashed_value,$name")
+    hashed_tree=$(git write-tree "$hashed_stage")
+    if [ -d "$REPOROOT/.git/refs/heads/store" ]; then
+        hashed_commit=$(git commit-tree "$hashed_tree" -m update -p "$(cat "$REPOROOT/.git/refs/heads/store")")
+        git update-ref refs/heads/store "$hashed_commit"
+    else
+        hashed_commit=$(git commit-tree "$hashed_tree" -m update)
+        echo "$hashed_commit" >"$REPOROOT/.git/refs/heads/store"
+    fi
+
+}
+
+read_thing() {
+    name=$1
+    git show "store:$name"
+}
+
+route() {
+    cmd=${1:-}
+    [ -z "$1" ] || shift
+    case "$cmd" in
+    write)
+        write_thing "$@"
+        ;;
+    read)
+        read_thing "$@"
+        ;;
+    *)
+        echo "IDK WTF dis means: $cmd $*"
+    esac
+}
+
+
+route "$@"
