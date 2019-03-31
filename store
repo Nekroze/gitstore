@@ -16,12 +16,12 @@ write_thing() {
     hashed_value=$(echo "$value" | git hash-object -w --stdin)
     hashed_stage=$(git update-index --add --cacheinfo "100644,$hashed_value,$name")
     hashed_tree=$(git write-tree "$hashed_stage")
-    if [ -d "$REPOROOT/.git/refs/heads/store" ]; then
-        hashed_commit=$(git commit-tree "$hashed_tree" -m update -p "$(cat "$REPOROOT/.git/refs/heads/store")")
-        git update-ref refs/heads/store "$hashed_commit"
+    if [ -d "$REPOROOT/.git/refs/gitstore/store" ]; then
+        hashed_commit=$(git commit-tree "$hashed_tree" -m update -p "$(cat "$REPOROOT/.git/refs/gitstore/store")")
+        git update-ref refs/gitstore/store "$hashed_commit"
     else
         hashed_commit=$(git commit-tree "$hashed_tree" -m update)
-        echo "$hashed_commit" >"$REPOROOT/.git/refs/heads/store"
+        echo "$hashed_commit" >"$REPOROOT/.git/refs/gitstore/store"
     fi
 
 }
@@ -41,6 +41,12 @@ route() {
     read)
         read_thing "$@"
         ;;
+    push)
+	    git push "${1:-}" 'refs/gitstore/*'
+        ;;
+    pull)
+	    git fetch "${1:-}"  'refs/gitstore/*:refs/gitstore/*'
+	    ;;
     *)
         echo "IDK WTF dis means: $cmd $*"
     esac
