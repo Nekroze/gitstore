@@ -13,6 +13,7 @@ write_thing() {
     shift
     value="$*"
 
+    mkdir -p "$REPOROOT/.git/refs/gitstore"
     hashed_value=$(echo "$value" | git hash-object -w --stdin)
     hashed_stage=$(git update-index --add --cacheinfo "100644,$hashed_value,$name")
     hashed_tree=$(git write-tree "$hashed_stage")
@@ -28,7 +29,7 @@ write_thing() {
 
 read_thing() {
     name=$1
-    git show "store:$name"
+    git show "refs/gitstore/store:$name"
 }
 
 route() {
